@@ -48,7 +48,12 @@ function App() {
         ...prev,
         {
           role: "bot",
-          text: data.reply || "Sorry, I couldn't get a response.",
+          text: (data.reply || "Sorry, I couldn't get a response.")
+  .replace(/\*\*/g, "")
+  .replace(/^###\s*/gm, "")
+  .replace(/^##\s*/gm, "")
+  .replace(/^#\s*/gm, "")
+  .replace(/^[-*]\s+/gm, "• "),
         },
       ]);
     } catch (error) {

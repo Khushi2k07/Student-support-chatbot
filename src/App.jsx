@@ -1,5 +1,8 @@
 import { useState } from "react";
 import "./App.css";
+
+const API_URL = "https://student-support-chatbot-d4jr.onrender.com/api/chat";
+
 function App() {
   const [messages, setMessages] = useState([
     {
@@ -12,58 +15,42 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+    const text = input.trim();
 
-    const userMessage = input.trim();
+    if (!text || loading) return;
 
     setMessages((prev) => [
       ...prev,
-      {
-        role: "user",
-        text: userMessage,
-      },
+      { role: "user", text },
     ]);
 
     setInput("");
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://student-support-chatbot-d4jr.onrender.com/api/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: userMessage,
-          }),
-        }
-      );
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: text,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error("Backend request failed");
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
 
-      if (data.reply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "bot",
-            text: data.reply,
-          },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "bot",
-            text: "Sorry, I couldn't get a response.",
-          },
-        ]);
-      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: data.reply || "Sorry, I couldn't get a response.",
+        },
+      ]);
     } catch (error) {
       console.error(error);
 
@@ -71,7 +58,7 @@ function App() {
         ...prev,
         {
           role: "bot",
-          text: "Sorry, I couldn't get a response.",
+          text: "Sorry, something went wrong. Please try again.",
         },
       ]);
     } finally {
@@ -99,45 +86,46 @@ function App() {
           </div>
         </header>
 
-        <div className="messages">
+        <main className="chat-area">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`message ${
-                message.role === "user" ? "user-message" : "bot-message"
-              }`}
+              className={`message-row ${message.role}`}
             >
-              {message.role === "bot" && (
-                <div className="bot-icon">🤖</div>
-              )}
+              <div className="avatar">
+                {message.role === "bot" ? "🤖" : "👤"}
+              </div>
 
-              <div className="message-text">
-                {message.text.replace(/\*\*/g, "")}
+              <div className="message">
+                {message.text}
               </div>
             </div>
           ))}
 
           {loading && (
-            <div className="message bot-message">
-              <div className="bot-icon">🤖</div>
-              <div className="message-text">
+            <div className="message-row bot">
+              <div className="avatar">🤖</div>
+              <div className="message typing">
                 Thinking...
               </div>
             </div>
           )}
-        </div>
+        </main>
 
         <div className="input-area">
           <input
             type="text"
-            placeholder="Ask me anything..."
             value={input}
+            placeholder="Ask me anything..."
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
 
-          <button onClick={sendMessage} disabled={loading}>
+          <button
+            onClick={sendMessage}
+            disabled={loading || !input.trim()}
+          >
             {loading ? "..." : "Send"}
           </button>
         </div>
